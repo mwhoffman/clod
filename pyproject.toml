@@ -1,7 +1,10 @@
 [project]
 name = "clod"
 version = "0.1.0"
-description = "Tool for managing local Claude Code projects/conversations."
+description = "An alternative CLI launcher for Claude Code."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [{name = "Matthew W. Hoffman"}]
 requires-python = ">=3.10"
 dependencies = [
@@ -9,6 +12,10 @@ dependencies = [
   "rich>=15.0.0",
   "typer>=0.27.2",
 ]
+
+[project.urls]
+Repository = "https://github.com/mwhoffman/clod"
+Issues = "https://github.com/mwhoffman/clod/issues"
 
 [project.scripts]
 clod = "clod.cli:app"
