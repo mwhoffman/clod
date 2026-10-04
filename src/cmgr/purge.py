@@ -68,19 +68,7 @@ def other_lines(path: str) -> tuple[list[str], int]:
     The lines of the prompt history that are not prompts typed in the project,
     and the number of lines that are.
   """
-  kept: list[str] = []
-  try:
-    lines = common.HISTORY_FILE.read_text().splitlines(keepends=True)
-  except OSError:
-    return kept, 0
-  for line in lines:
-    try:
-      record = json.loads(line)
-    except json.JSONDecodeError:
-      record = None
-    if not isinstance(record, dict) or record.get("project") != path:
-      kept.append(line)
-  return kept, len(lines) - len(kept)
+  return common.split_history(lambda record: record.get("project") == path)
 
 
 def sharing(project: common.Project) -> dict[pathlib.Path, int]:

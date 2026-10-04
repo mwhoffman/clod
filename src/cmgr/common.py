@@ -10,7 +10,7 @@ import re
 import secrets
 import shutil
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 
@@ -354,6 +354,33 @@ def live_sessions() -> list[Session]:
     ):
       sessions.append(Session(session, pid, pathlib.Path(cwd)))
   return sessions
+
+
+def split_history(
+  drop: Callable[[dict[str, Any]], bool],
+) -> tuple[list[str], int]:
+  """Split the prompt history into the prompts to drop and the rest.
+
+  Args:
+    drop: Whether to drop a prompt, given its record.
+
+  Returns:
+    The lines of the prompt history to keep, which include those that cannot
+    be parsed, and the number of lines to drop.
+  """
+  kept: list[str] = []
+  try:
+    lines = HISTORY_FILE.read_text().splitlines(keepends=True)
+  except OSError:
+    return kept, 0
+  for line in lines:
+    try:
+      record = json.loads(line)
+    except json.JSONDecodeError:
+      record = None
+    if not isinstance(record, dict) or not drop(record):
+      kept.append(line)
+  return kept, len(lines) - len(kept)
 
 
 def delete(path: pathlib.Path) -> None:

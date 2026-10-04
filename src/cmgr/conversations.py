@@ -16,6 +16,9 @@ from cmgr import console as console_lib
 # Maximum number of prompts printed for each conversation.
 MAX_PROMPTS = 6
 
+# Minimum length of the part of an id marked as identifying a conversation.
+MIN_PREFIX = 4
+
 
 @dataclasses.dataclass
 class Summary:
@@ -107,11 +110,33 @@ def summarize(conversation: common.Conversation) -> Summary:
   return summary
 
 
+def prefix_length(session: str, others: set[str]) -> int:
+  """Find how much of a session id is needed to identify its conversation.
+
+  Args:
+    session: The session id.
+    others: Session ids of other conversations, which may include the id.
+
+  Returns:
+    The length of the shortest prefix of the id, of at least MIN_PREFIX
+    characters, that no other id starts with.
+  """
+  others = others - {session}
+  length = min(MIN_PREFIX, len(session))
+  while length < len(session) and any(
+    o.startswith(session[:length]) for o in others
+  ):
+    length += 1
+  return length
+
+
 def show(
   console: rich.console.Console,
   summary: Summary,
   index: int,
   total: int,
+  prefix: int,
+  show_prompts: bool = False,
 ) -> None:
   """Print the summary of a conversation.
 
@@ -120,6 +145,8 @@ def show(
     summary: Summary to print.
     index: Position of the conversation among those being shown, from 1.
     total: Number of conversations being shown.
+    prefix: Length of the start of the id that identifies the conversation.
+    show_prompts: Whether to print the prompts typed by the user.
   """
   title = summary.custom_title or summary.title or "(untitled)"
   size = humanize.naturalsize(summary.size, gnu=True)
@@ -145,7 +172,8 @@ def show(
       (title, "header"), " ", (f"[{index}/{total}]", "dim")
     )
   )
-  show_field("id", summary.conversation.id)
+  session = summary.conversation.id
+  show_field("id", (session[:prefix], "prefix"), session[prefix:])
   show_field(
     "last modified",
     f"{humanize.naturaltime(summary.modified)} ",
@@ -156,7 +184,7 @@ def show(
     f" {summary.tool_calls} tool calls, {size})"
   )
   show_field("activity", f"{len(prompts)} prompts ", (details, "dim"))
-  if prompts:
+  if show_prompts and prompts:
     show_field("prompts")
     # When there are too many prompts show the first few and the last one.
     shown = (
@@ -171,11 +199,12 @@ def show(
       show_prompt(prompts[-1])
 
 
-def run(path: pathlib.Path) -> None:
+def run(path: pathlib.Path, show_prompts: bool = False) -> None:
   """Print a summary of each conversation of a project.
 
   Args:
     path: Working directory of the project.
+    show_prompts: Whether to print the prompts typed by the user.
   """
   project = common.Project(path.resolve())
   summaries = sorted(
@@ -185,7 +214,10 @@ def run(path: pathlib.Path) -> None:
   if not summaries:
     sys.exit(f"No Claude Code conversations found for {project.path}")
 
+  # Ids are told apart from those of every project, not only this one.
+  sessions = {p.stem for p in common.PROJECTS_DIR.glob("*/*.jsonl")}
   console = console_lib.make_console()
   for index, summary in enumerate(summaries, 1):
-    show(console, summary, index, len(summaries))
+    prefix = prefix_length(summary.conversation.id, sessions)
+    show(console, summary, index, len(summaries), prefix, show_prompts)
     console.print()

@@ -7,6 +7,7 @@ import typer
 
 from cmgr import clean as clean_lib
 from cmgr import conversations as conversations_lib
+from cmgr import delete as delete_lib
 from cmgr import projects as projects_lib
 from cmgr import purge as purge_lib
 from cmgr import tmp as tmp_lib
@@ -23,9 +24,13 @@ def main() -> None:
 @app.command()
 def conversations(
   project: Annotated[pathlib.Path, typer.Argument()] = pathlib.Path(),
+  prompts: Annotated[
+    bool,
+    typer.Option("--prompts", "-p", help="Print the prompts typed."),
+  ] = False,
 ) -> None:
   """List and summarize the conversations of a given project."""
-  conversations_lib.run(project)
+  conversations_lib.run(project, show_prompts=prompts)
 
 
 @app.command()
@@ -47,6 +52,25 @@ def clean(
 ) -> None:
   """Delete state that no longer refers to anything."""
   clean_lib.run(yes=yes, dry_run=dry_run)
+
+
+@app.command()
+def delete(
+  ids: Annotated[
+    list[str],
+    typer.Argument(help="Ids of the conversations, or the start of each."),
+  ],
+  yes: Annotated[
+    bool,
+    typer.Option("--yes", "-y", help="Delete without asking."),
+  ] = False,
+  dry_run: Annotated[
+    bool,
+    typer.Option("--dry-run", "-n", help="Only list what would be deleted."),
+  ] = False,
+) -> None:
+  """Delete conversations, of any project."""
+  delete_lib.run(ids, yes=yes, dry_run=dry_run)
 
 
 @app.command()

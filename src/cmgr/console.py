@@ -11,6 +11,8 @@ THEME = rich.theme.Theme(
     "header": "bold underline bright_yellow",
     # Name of a field, before its value, which is ANSI color 11.
     "key": "bright_yellow",
+    # Start of an id, which is enough to identify it.
+    "prefix": "underline",
     # Something the user should read before going ahead.
     "warning": "bold red",
     # Secondary detail, such as how long ago something happened, which is ANSI
