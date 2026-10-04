@@ -11,7 +11,11 @@ from cmgr import console as console_lib
 
 def run() -> None:
   """Print a line for each project."""
-  projects = common.projects()
+  # Temporary projects, and the directory holding them, are left out.
+  tmp = common.TMP_DIR.resolve()
+  projects = [
+    p for p in common.projects() if p.path != tmp and tmp not in p.path.parents
+  ]
   if not projects:
     sys.exit("No Claude Code projects found.")
 

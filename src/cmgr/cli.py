@@ -9,6 +9,7 @@ from cmgr import clean as clean_lib
 from cmgr import conversations as conversations_lib
 from cmgr import projects as projects_lib
 from cmgr import purge as purge_lib
+from cmgr import tmp as tmp_lib
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -62,3 +63,9 @@ def purge(
 ) -> None:
   """Delete everything Claude Code has stored about a given project."""
   purge_lib.run(project, yes=yes, dry_run=dry_run)
+
+
+@app.command()
+def tmp() -> None:
+  """Run Claude Code in a new temporary project."""
+  tmp_lib.run()

@@ -43,6 +43,9 @@ HISTORY_FILE = CLAUDE_DIR / "history.jsonl"
 # File in which Claude Code records the projects it has been run in.
 CONFIG_FILE = pathlib.Path.home() / ".claude.json"
 
+# Directory holding the working directory of each temporary project.
+TMP_DIR = pathlib.Path.home() / ".local" / "share" / "cmgr" / "tmp"
+
 # Seconds to wait for a lock held by a running Claude Code before giving up.
 LOCK_TIMEOUT = 5.0
 

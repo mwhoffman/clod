@@ -147,7 +147,7 @@ def show(
   )
   show_field("id", summary.conversation.id)
   show_field(
-    "time",
+    "last modified",
     f"{humanize.naturaltime(summary.modified)} ",
     (f"(started {humanize.naturaltime(summary.start)})", "dim"),
   )
