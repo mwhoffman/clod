@@ -9,6 +9,7 @@ import pathlib
 import re
 import secrets
 import shutil
+import sys
 import time
 from collections.abc import Callable, Iterator
 from typing import Any
@@ -354,6 +355,35 @@ def live_sessions() -> list[Session]:
     ):
       sessions.append(Session(session, pid, pathlib.Path(cwd)))
   return sessions
+
+
+def resolve(prefixes: list[str]) -> list[Conversation]:
+  """Find the conversations that session ids, or the starts of them, refer to.
+
+  Conversations of every project are searched. The program exits, naming
+  every problem, unless each prefix refers to exactly one conversation.
+
+  Args:
+    prefixes: Session ids, or the start of each.
+
+  Returns:
+    The conversations, in the order given and without repeats.
+  """
+  known = [Conversation(p) for p in sorted(PROJECTS_DIR.glob("*/*.jsonl"))]
+  found: list[Conversation] = []
+  problems: list[str] = []
+  for prefix in prefixes:
+    matches = [c for c in known if prefix and c.id.startswith(prefix)]
+    if not matches:
+      problems.append(f"No conversation has an id starting with {prefix!r}")
+    elif len(matches) > 1:
+      ids = ", ".join(c.id for c in matches)
+      problems.append(f"Several conversations match {prefix!r}: {ids}")
+    elif matches[0] not in found:
+      found.append(matches[0])
+  if problems:
+    sys.exit("\n".join(problems))
+  return found
 
 
 def split_history(

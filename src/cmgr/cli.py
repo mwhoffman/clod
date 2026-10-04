@@ -10,6 +10,7 @@ from cmgr import conversations as conversations_lib
 from cmgr import delete as delete_lib
 from cmgr import projects as projects_lib
 from cmgr import purge as purge_lib
+from cmgr import rename as rename_lib
 from cmgr import tmp as tmp_lib
 
 
@@ -93,3 +94,20 @@ def purge(
 def tmp() -> None:
   """Run Claude Code in a new temporary project."""
   tmp_lib.run()
+
+
+@app.command()
+def rename(
+  conversation: Annotated[
+    str,
+    typer.Argument(help="Id of the conversation, or the start of it."),
+  ],
+  name: Annotated[
+    str | None,
+    typer.Option(
+      "--name", "-m", help="New name, which is asked for if left out."
+    ),
+  ] = None,
+) -> None:
+  """Rename a conversation, of any project."""
+  rename_lib.run(conversation, name)

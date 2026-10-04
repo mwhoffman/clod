@@ -29,38 +29,6 @@ class Plan:
   prompts: int
 
 
-def resolve(prefixes: list[str]) -> list[common.Conversation]:
-  """Find the conversations that session ids, or the starts of them, refer to.
-
-  Conversations of every project are searched. The program exits, naming
-  every problem, unless each prefix refers to exactly one conversation.
-
-  Args:
-    prefixes: Session ids, or the start of each.
-
-  Returns:
-    The conversations, in the order given and without repeats.
-  """
-  known = [
-    common.Conversation(p)
-    for p in sorted(common.PROJECTS_DIR.glob("*/*.jsonl"))
-  ]
-  found: list[common.Conversation] = []
-  problems: list[str] = []
-  for prefix in prefixes:
-    matches = [c for c in known if prefix and c.id.startswith(prefix)]
-    if not matches:
-      problems.append(f"No conversation has an id starting with {prefix!r}")
-    elif len(matches) > 1:
-      ids = ", ".join(c.id for c in matches)
-      problems.append(f"Several conversations match {prefix!r}: {ids}")
-    elif matches[0] not in found:
-      found.append(matches[0])
-  if problems:
-    sys.exit("\n".join(problems))
-  return found
-
-
 def other_lines(sessions: set[str]) -> tuple[list[str], int]:
   """Split the prompt history into the prompts of conversations and the rest.
 
@@ -134,7 +102,7 @@ def run(prefixes: list[str], yes: bool = False, dry_run: bool = False) -> None:
     yes: Whether to delete without asking for confirmation.
     dry_run: Whether to only print what would be deleted.
   """
-  conversations = resolve(prefixes)
+  conversations = common.resolve(prefixes)
   sessions = {c.id for c in conversations}
   running = [s for s in common.live_sessions() if s.id in sessions]
   if running:
