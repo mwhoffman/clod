@@ -5,8 +5,8 @@ import sys
 import humanize
 import rich.text
 
-from cmgr import common
-from cmgr import console as console_lib
+from clod import common
+from clod import console as console_lib
 
 
 def run() -> None:

@@ -5,9 +5,9 @@ import os
 import readline
 import sys
 
-from cmgr import common
-from cmgr import console as console_lib
-from cmgr import conversations as conversations_lib
+from clod import common
+from clod import console as console_lib
+from clod import conversations as conversations_lib
 
 
 # Name of the file, in the directory next to a conversation, in which Claude

@@ -5,9 +5,9 @@ import sys
 
 import typer
 
-from cmgr import common
-from cmgr import console as console_lib
-from cmgr import purge as purge_lib
+from clod import common
+from clod import console as console_lib
+from clod import purge as purge_lib
 
 
 # Paths grouped by a description of what they are.

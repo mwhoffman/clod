@@ -9,8 +9,8 @@ from typing import Any
 import rich.text
 import typer
 
-from cmgr import common
-from cmgr import console as console_lib
+from clod import common
+from clod import console as console_lib
 
 
 @dataclasses.dataclass

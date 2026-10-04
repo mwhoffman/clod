@@ -9,8 +9,8 @@ import humanize
 import rich.console
 import rich.text
 
-from cmgr import common
-from cmgr import console as console_lib
+from clod import common
+from clod import console as console_lib
 
 
 # Maximum number of prompts printed for each conversation.

@@ -7,7 +7,7 @@ import secrets
 import sys
 from typing import Any
 
-from cmgr import common
+from clod import common
 
 
 def trust(directory: pathlib.Path) -> None:

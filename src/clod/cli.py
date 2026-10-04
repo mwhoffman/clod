@@ -1,17 +1,17 @@
-"""Command line interface for cmgr."""
+"""Command line interface for clod."""
 
 import pathlib
 from typing import Annotated
 
 import typer
 
-from cmgr import clean as clean_lib
-from cmgr import conversations as conversations_lib
-from cmgr import delete as delete_lib
-from cmgr import projects as projects_lib
-from cmgr import purge as purge_lib
-from cmgr import rename as rename_lib
-from cmgr import tmp as tmp_lib
+from clod import clean as clean_lib
+from clod import conversations as conversations_lib
+from clod import delete as delete_lib
+from clod import projects as projects_lib
+from clod import purge as purge_lib
+from clod import rename as rename_lib
+from clod import tmp as tmp_lib
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
