@@ -1,10 +1,15 @@
 """Model of the projects and conversations Claude Code keeps on disk."""
 
+import contextlib
 import dataclasses
 import datetime
 import json
+import os
 import pathlib
 import re
+import secrets
+import shutil
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -25,8 +30,21 @@ LIVE_DIR = CLAUDE_DIR / "sessions"
 # conversations directories.
 CACHE_DIR = pathlib.Path.home() / ".cache" / "claude-cli-nodejs"
 
+# Directory with a directory per conversation that ran in the background, named
+# by the start of its session id.
+JOBS_DIR = CLAUDE_DIR / "jobs"
+
+# File in which the background daemon records the jobs it is managing.
+ROSTER_FILE = CLAUDE_DIR / "daemon" / "roster.json"
+
+# File in which Claude Code records every prompt typed, one per line.
+HISTORY_FILE = CLAUDE_DIR / "history.jsonl"
+
 # File in which Claude Code records the projects it has been run in.
 CONFIG_FILE = pathlib.Path.home() / ".claude.json"
+
+# Seconds to wait for a lock held by a running Claude Code before giving up.
+LOCK_TIMEOUT = 5.0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -96,6 +114,21 @@ class Conversation:
       if isinstance(cwd, str) and cwd not in seen:
         seen.add(cwd)
         yield cwd
+
+
+@dataclasses.dataclass(frozen=True)
+class Session:
+  """A conversation that Claude Code is currently running.
+
+  Attributes:
+    id: Session id of the conversation.
+    pid: Id of the process running it.
+    cwd: Working directory it was started in.
+  """
+
+  id: str
+  pid: int
+  cwd: pathlib.Path
 
 
 @dataclasses.dataclass(frozen=True)
@@ -188,15 +221,10 @@ def registered_projects() -> list[Project]:
   Returns:
     The projects, which is empty if the config file cannot be read.
   """
-  try:
-    config = json.loads(CONFIG_FILE.read_text())
-  except (OSError, json.JSONDecodeError):
+  registered = read_json(CONFIG_FILE).get("projects")
+  if not isinstance(registered, dict):
     return []
-  if not isinstance(config, dict) or not isinstance(
-    config.get("projects"), dict
-  ):
-    return []
-  return [Project(pathlib.Path(path)) for path in config["projects"]]
+  return [Project(pathlib.Path(path)) for path in registered]
 
 
 def match(directory: pathlib.Path) -> Project | None:
@@ -255,3 +283,136 @@ def unmatched_dirs(projects: list[Project]) -> list[pathlib.Path]:
   return sorted(
     d for d in PROJECTS_DIR.iterdir() if d.is_dir() and d not in claimed
   )
+
+
+def read_json(path: pathlib.Path) -> dict[str, Any]:
+  """Read a file holding a JSON object.
+
+  Args:
+    path: Location of the file.
+
+  Returns:
+    The object, which is empty if the file cannot be read or holds anything
+    else.
+  """
+  try:
+    value = json.loads(path.read_text())
+  except (OSError, json.JSONDecodeError):
+    return {}
+  return value if isinstance(value, dict) else {}
+
+
+def roster() -> dict[str, Any]:
+  """Find the jobs the background daemon is managing.
+
+  Returns:
+    A mapping from the name of each job, which is also the name of its
+    directory under ~/.claude/jobs, to what the daemon has recorded about it.
+  """
+  workers = read_json(ROSTER_FILE).get("workers")
+  return workers if isinstance(workers, dict) else {}
+
+
+def is_running(pid: int) -> bool:
+  """Check whether a process exists.
+
+  Args:
+    pid: Id of the process.
+
+  Returns:
+    Whether there is a process with the id, which may belong to another user.
+  """
+  try:
+    os.kill(pid, 0)
+  except ProcessLookupError:
+    return False
+  except PermissionError:
+    return True
+  return True
+
+
+def live_sessions() -> list[Session]:
+  """Find the conversations that Claude Code is currently running.
+
+  Returns:
+    The sessions recorded under ~/.claude/sessions or by the background daemon
+    whose process is still running.
+  """
+  entries = [read_json(path) for path in LIVE_DIR.glob("*.json")]
+  entries += [e for e in roster().values() if isinstance(e, dict)]
+  sessions: list[Session] = []
+  for entry in entries:
+    session, pid, cwd = (entry.get(k) for k in ("sessionId", "pid", "cwd"))
+    if (
+      isinstance(session, str)
+      and isinstance(pid, int)
+      and isinstance(cwd, str)
+      and is_running(pid)
+    ):
+      sessions.append(Session(session, pid, pathlib.Path(cwd)))
+  return sessions
+
+
+def delete(path: pathlib.Path) -> None:
+  """Delete a file or a directory and everything in it.
+
+  Args:
+    path: Path to delete. A symbolic link is removed without touching what it
+      points to.
+  """
+  if path.is_dir() and not path.is_symlink():
+    shutil.rmtree(path)
+  else:
+    path.unlink()
+
+
+@contextlib.contextmanager
+def lock(path: pathlib.Path) -> Iterator[None]:
+  """Hold the lock Claude Code takes before it writes to a file.
+
+  The lock is a directory next to the file, with ".lock" added to its name,
+  which exists for as long as the lock is held.
+
+  Args:
+    path: Location of the file to lock.
+
+  Raises:
+    TimeoutError: If the lock is still held by something else after
+      LOCK_TIMEOUT seconds. A lock is never taken over, even if whatever held
+      it has gone away.
+  """
+  directory = path.with_name(f"{path.name}.lock")
+  deadline = time.monotonic() + LOCK_TIMEOUT
+  while True:
+    try:
+      directory.mkdir()
+      break
+    except FileExistsError:
+      if time.monotonic() > deadline:
+        raise TimeoutError(f"{directory} is held") from None
+      time.sleep(0.05)
+  try:
+    yield
+  finally:
+    directory.rmdir()
+
+
+def replace(path: pathlib.Path, text: str) -> None:
+  """Replace the contents of a file in a single step.
+
+  The text is written to a temporary file next to the file, which is then
+  renamed over it, so that the file is never seen half written.
+
+  Args:
+    path: Location of the file, which must exist.
+    text: New contents of the file.
+  """
+  temporary = path.with_name(
+    f"{path.name}.tmp.{os.getpid()}.{secrets.token_hex(6)}"
+  )
+  mode = path.stat().st_mode & 0o777
+  with os.fdopen(
+    os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode), "w"
+  ) as f:
+    f.write(text)
+  temporary.replace(path)

@@ -8,6 +8,7 @@ import typer
 from cmgr import clean as clean_lib
 from cmgr import conversations as conversations_lib
 from cmgr import projects as projects_lib
+from cmgr import purge as purge_lib
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -45,3 +46,19 @@ def clean(
 ) -> None:
   """Delete state that no longer refers to anything."""
   clean_lib.run(yes=yes, dry_run=dry_run)
+
+
+@app.command()
+def purge(
+  project: Annotated[pathlib.Path, typer.Argument()] = pathlib.Path(),
+  yes: Annotated[
+    bool,
+    typer.Option("--yes", "-y", help="Purge without asking."),
+  ] = False,
+  dry_run: Annotated[
+    bool,
+    typer.Option("--dry-run", "-n", help="Only list what would be purged."),
+  ] = False,
+) -> None:
+  """Delete everything Claude Code has stored about a given project."""
+  purge_lib.run(project, yes=yes, dry_run=dry_run)
