@@ -1,5 +1,5 @@
 [project]
-name = "claude-manager"
+name = "clod"
 version = "0.1.0"
 description = "Tool for managing local Claude Code projects/conversations."
 authors = [{name = "Matthew W. Hoffman"}]
@@ -26,7 +26,3 @@ build-backend = "uv_build"
 [tool.uv]
 # Should match the version requirements of uv_build above.
 required-version = ">=0.12,<0.13"
-
-[tool.uv.build-backend]
-# The package is not named after the project.
-module-name = "clod"
