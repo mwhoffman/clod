@@ -1,4 +1,4 @@
-"""Summarize the conversations of a project, newest first."""
+"""Summarize the conversations of a project, oldest first."""
 
 import dataclasses
 import datetime
@@ -181,7 +181,6 @@ def run(path: pathlib.Path) -> None:
   summaries = sorted(
     (summarize(c) for c in project.conversations() if not c.is_empty()),
     key=lambda s: s.modified,
-    reverse=True,
   )
   if not summaries:
     sys.exit(f"No Claude Code conversations found for {project.path}")

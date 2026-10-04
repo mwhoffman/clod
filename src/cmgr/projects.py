@@ -1,4 +1,4 @@
-"""List the projects known to Claude Code, most recently used first."""
+"""List the projects known to Claude Code, in order of working directory."""
 
 import sys
 
@@ -19,18 +19,12 @@ def run() -> None:
   if not projects:
     sys.exit("No Claude Code projects found.")
 
-  modified = {p: p.modified() for p in projects}
-
-  def recency(project: common.Project) -> float:
-    when = modified[project]
-    return when.timestamp() if when else float("-inf")
-
-  # Projects that have never been used sort last, by path.
-  projects.sort(key=recency, reverse=True)
+  # Ordered without regard to case, as a directory listing would be.
+  projects.sort(key=lambda p: (str(p.path).casefold(), p.path))
 
   console = console_lib.make_console()
   for project in projects:
-    when = modified[project]
+    when = project.modified()
     age = humanize.naturaltime(when) if when else "never"
     if not project.exists():
       age += ", missing"
