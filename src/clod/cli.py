@@ -8,40 +8,34 @@ import typer
 from clod import clean as clean_lib
 from clod import conversations as conversations_lib
 from clod import delete as delete_lib
-from clod import launch as launch_lib
 from clod import projects as projects_lib
 from clod import purge as purge_lib
 from clod import rename as rename_lib
+from clod import run as run_lib
 from clod import tmp as tmp_lib
 
 
-app = typer.Typer(add_completion=True)
+app = typer.Typer(no_args_is_help=True, add_completion=True)
 
 
-@app.callback(invoke_without_command=True)
-def main(
-  ctx: typer.Context,
+@app.callback()
+def main() -> None:
+  """Tool for running Claude Code and managing its projects and conversations."""
+
+
+@app.command()
+def run(
   directory: Annotated[
-    pathlib.Path | None,
-    typer.Option(
-      "--dir",
-      "-d",
-      help="Project to run in, rather than the current directory.",
-    ),
-  ] = None,
+    pathlib.Path,
+    typer.Option("--dir", "-d", help="Project to run in."),
+  ] = pathlib.Path(),
   new: Annotated[
     bool,
     typer.Option("--new", "-N", help="Start a new conversation."),
   ] = False,
 ) -> None:
-  """Tool for running Claude Code and managing its projects and conversations.
-
-  Without a command, run Claude Code and continue the last conversation.
-  """
-  if ctx.invoked_subcommand is None:
-    launch_lib.run(directory or pathlib.Path(), new=new)
-  elif directory is not None or new:
-    ctx.fail(f"Options cannot be given before '{ctx.invoked_subcommand}'.")
+  """Run Claude Code in a project, continuing its last conversation."""
+  run_lib.run(directory, new=new)
 
 
 @app.command()
