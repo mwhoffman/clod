@@ -15,7 +15,7 @@ from clod import rename as rename_lib
 from clod import tmp as tmp_lib
 
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(add_completion=True)
 
 
 @app.callback(invoke_without_command=True)
